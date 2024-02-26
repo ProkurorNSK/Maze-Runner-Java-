@@ -1,33 +1,101 @@
 package maze;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
-    public static int height;
-    public static int width;
+    public static byte height;
+    public static byte width;
 
     public static final String PASS = "  ";
     public static final String WALL = "██";
 
-    public static int[][] maze;
+    public static byte[][] maze = null;
 
     public static final Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println("Please, enter the size of a maze");
-        height = sc.nextInt();
-        width = sc.nextInt();
-        maze = new int[height][width];
+        String menu;
+        do {
+            printMenu();
+            menu = sc.nextLine();
+            switch (menu) {
+                case "1" -> generateMaze();
+                case "2" -> loadMaze();
+                case "3" -> saveMaze();
+                case "4" -> printMaze();
+                case "0" -> {
+                    System.out.println("Bye!");
+                    return;
+                }
+                default -> System.out.println("Incorrect option. Please try again");
+            }
+        } while (true);
+    }
 
-        initMaze();
-        generateMaze();
-        printMaze();
+    private static void saveMaze() {
+        String input = sc.nextLine();
+        byte[] toSave = new byte[height * width + 1];
+        toSave[0] = height;
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                toSave[j * width + i + 1] = maze[j][i];
+            }
+        }
+        try {
+            Files.write(Paths.get(input), toSave);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void loadMaze() {
+        String input = sc.nextLine();
+        byte[] toLoad;
+        try {
+            toLoad = Files.readAllBytes(Paths.get(input));
+        } catch (IOException e) {
+            System.out.printf("The file %s does not exist\n", input);
+            return;
+        }
+
+        if (toLoad.length == 0 || toLoad[0] * toLoad[0] != toLoad.length - 1) {
+            System.out.println("Cannot load the maze. It has an invalid format");
+            return;
+        }
+        height = toLoad[0];
+        width = height;
+        maze = new byte[height][width];
+
+        for (int i = 0; i < height * width; i++) {
+            maze[i / width][i % width] = toLoad[i + 1];
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println("=== Menu ===");
+        System.out.println("1. Generate a new maze");
+        System.out.println("2. Load a maze");
+        if (maze != null) {
+            System.out.println("3. Save the maze");
+            System.out.println("4. Display the maze");
+        }
+        System.out.println("0. Exit");
     }
 
     private static void generateMaze() {
+        System.out.println("Enter the size of a new maze");
+        String input = sc.nextLine();
+        height = Byte.parseByte(input);
+        width = height;
+        maze = new byte[height][width];
+
+        initMaze();
         List<Frontier> frontiers = new ArrayList<>();
         Random random = new Random();
         int y = random.nextInt(height - 2) + 1;
@@ -99,6 +167,7 @@ public class Main {
                 break;
             }
         }
+        printMaze();
     }
 
     private static void initMaze() {
