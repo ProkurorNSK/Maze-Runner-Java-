@@ -477,9 +477,9 @@ files:
   - name: test_maze.txt
     visible: true
     learner_created: true
-feedback_link: https://hyperskill.org/projects/47/stages/253/implement#comment
+feedback_link: https://hyperskill.org/learn/step/5395#comment
 status: Solved
 feedback:
   message: Congratulations!
   time: "Mon, 26 Feb 2024 22:25:02 UTC"
-record: -1
+record: 3

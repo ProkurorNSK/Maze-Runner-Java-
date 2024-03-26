@@ -9,13 +9,14 @@ import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
-    public static byte height;
-    public static byte width;
+    public static byte size;
 
     public static final String PASS = "  ";
     public static final String WALL = "██";
+    public static final String WAY = "//";
 
     public static byte[][] maze = null;
+    public static byte[][] solution = null;
 
     public static final Scanner sc = new Scanner(System.in);
 
@@ -28,7 +29,8 @@ public class Main {
                 case "1" -> generateMaze();
                 case "2" -> loadMaze();
                 case "3" -> saveMaze();
-                case "4" -> printMaze();
+                case "4" -> printMaze(false);
+                case "5" -> findEscape();
                 case "0" -> {
                     System.out.println("Bye!");
                     return;
@@ -38,13 +40,56 @@ public class Main {
         } while (true);
     }
 
+    private static void findEscape() {
+        solution = new byte[size][size];
+        //in
+        int inX = 0;
+        int inY = 0;
+        for (int i = 0; i < size; i++) {
+            if (maze[i][inX] == 0) {
+                inY = i;
+                break;
+            }
+        }
+        //out
+        int outX = size - 1;
+        int outY = 0;
+        for (int i = 0; i < size; i++) {
+            if (maze[i][outX] == 0) {
+                outY = i;
+                break;
+            }
+        }
+
+        solveMaze(inY, inX, outY, outX);
+        printMaze(true);
+    }
+
+    private static boolean solveMaze(int y, int x, int outY, int outX) {
+        if ((y == outY) && (x == outX)) {
+            solution[y][x] = 1;
+            return true;
+        }
+
+        if (y >= 0 && x >= 0 && y < size && x < size && solution[y][x] == 0 && maze[y][x] == 0) {
+            solution[y][x] = 1;
+            if (solveMaze(y + 1, x, outY, outX)) return true;
+            if (solveMaze(y, x + 1, outY, outX)) return true;
+            if (solveMaze(y - 1, x, outY, outX)) return true;
+            if (solveMaze(y, x - 1, outY, outX)) return true;
+            solution[y][x] = 0;
+            return false;
+        }
+        return false;
+    }
+
     private static void saveMaze() {
         String input = sc.nextLine();
-        byte[] toSave = new byte[height * width + 1];
-        toSave[0] = height;
-        for (int j = 0; j < height; j++) {
-            for (int i = 0; i < width; i++) {
-                toSave[j * width + i + 1] = maze[j][i];
+        byte[] toSave = new byte[size * size + 1];
+        toSave[0] = size;
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                toSave[j * size + i + 1] = maze[j][i];
             }
         }
         try {
@@ -68,12 +113,11 @@ public class Main {
             System.out.println("Cannot load the maze. It has an invalid format");
             return;
         }
-        height = toLoad[0];
-        width = height;
-        maze = new byte[height][width];
+        size = toLoad[0];
+        maze = new byte[size][size];
 
-        for (int i = 0; i < height * width; i++) {
-            maze[i / width][i % width] = toLoad[i + 1];
+        for (int i = 0; i < size * size; i++) {
+            maze[i / size][i % size] = toLoad[i + 1];
         }
     }
 
@@ -84,6 +128,7 @@ public class Main {
         if (maze != null) {
             System.out.println("3. Save the maze");
             System.out.println("4. Display the maze");
+            System.out.println("5. Find the escape");
         }
         System.out.println("0. Exit");
     }
@@ -91,15 +136,14 @@ public class Main {
     private static void generateMaze() {
         System.out.println("Enter the size of a new maze");
         String input = sc.nextLine();
-        height = Byte.parseByte(input);
-        width = height;
-        maze = new byte[height][width];
+        size = Byte.parseByte(input);
+        maze = new byte[size][size];
 
         initMaze();
         List<Frontier> frontiers = new ArrayList<>();
         Random random = new Random();
-        int y = random.nextInt(height - 2) + 1;
-        int x = random.nextInt(width - 2) + 1;
+        int y = random.nextInt(size - 2) + 1;
+        int x = random.nextInt(size - 2) + 1;
         frontiers.add(new Frontier(y, x, y, x));
 
         while (!frontiers.isEmpty()) {
@@ -122,7 +166,7 @@ public class Main {
                 }
             }
             //Right
-            if (x + 2 < width - 1 && maze[y][x + 2] == 1) {
+            if (x + 2 < size - 1 && maze[y][x + 2] == 1) {
                 Frontier frontier = new Frontier(y, x + 2, y, x);
                 if (!frontiers.contains(frontier)) {
                     frontiers.add(frontier);
@@ -136,7 +180,7 @@ public class Main {
                 }
             }
             //Down
-            if (y + 2 < height - 1 && maze[y + 2][x] == 1) {
+            if (y + 2 < size - 1 && maze[y + 2][x] == 1) {
                 Frontier frontier = new Frontier(y + 2, x, y, x);
                 if (!frontiers.contains(frontier)) {
                     frontiers.add(frontier);
@@ -144,7 +188,7 @@ public class Main {
             }
         }
         //In
-        for (int j = 1; j < height - 1; j++) {
+        for (int j = 1; j < size - 1; j++) {
             if (maze[j][1] == 0) {
                 maze[j][0] = 0;
                 break;
@@ -156,32 +200,40 @@ public class Main {
             }
         }
         //Out
-        for (int j = height - 2; j >= 1; j--) {
-            if (maze[j][width - 2] == 0) {
-                maze[j][width - 1] = 0;
+        for (int j = size - 2; j >= 1; j--) {
+            if (maze[j][size - 2] == 0) {
+                maze[j][size - 1] = 0;
                 break;
             }
-            if (maze[j][width - 2] == 1 && maze[j][width - 3] == 0) {
-                maze[j][width - 1] = 0;
-                maze[j][width - 2] = 0;
+            if (maze[j][size - 2] == 1 && maze[j][size - 3] == 0) {
+                maze[j][size - 1] = 0;
+                maze[j][size - 2] = 0;
                 break;
             }
         }
-        printMaze();
+        printMaze(false);
     }
 
     private static void initMaze() {
-        for (int j = 0; j < height; j++) {
-            for (int i = 0; i < width; i++) {
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
                 maze[j][i] = 1;
             }
         }
     }
 
-    private static void printMaze() {
-        for (int j = 0; j < height; j++) {
-            for (int i = 0; i < width; i++) {
-                System.out.printf("%s", maze[j][i] == 1 ? WALL : PASS);
+    private static void printMaze(boolean printWay) {
+        String cell;
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                if (maze[j][i] == 1)
+                    cell = WALL;
+                else if (printWay && solution[j][i] == 1)
+                    cell = WAY;
+                else {
+                    cell = PASS;
+                }
+                System.out.printf("%s", cell);
             }
             System.out.println();
         }
